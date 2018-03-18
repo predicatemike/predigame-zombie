@@ -28,17 +28,17 @@ def setup(player, level):
    def drink(soda, player):
       soda.destroy()
       player.energy = 10
-   fill(partial(image,'sprite', size=1.0), 0.05, player, drink)
+   fill(partial(image,'drink', size=1.0), 0.05, player, drink)
 
    def claim(coin, player):
       coin.destroy()
       player.wealth = 5
-   fill(partial(image,'coin', size=1.0), 0.25, player, claim)
+   fill(partial(image,'money', size=1.0), 0.25, player, claim)
 
 def get_blue():
    """ create a blue (friendly) actor """
    # return name of actor, grazing speed, self defense
-   return 'Piggy', 2
+   return 'Boar', 2
 
 def get_red():
    """ create a red (hostile) actor """
@@ -48,7 +48,4 @@ def get_red():
 
 def get_player():
    # name of player sprite (must exist in actors/ directory)
-   # pick a random Soldier
-   choices = ['Soldier-1', 'Soldier-2', 'Soldier-3', 'Soldier-4', 'Soldier-5',
-              'Soldier-6', 'Soldier-7', 'Soldier-8', 'Soldier-9', 'Soldier-10']
-   return choice(choices)
+   return 'Soldier-1'

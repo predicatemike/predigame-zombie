@@ -368,7 +368,7 @@ class NuclearBomb(Thing):
          bomb.destroy()
 
          # display the nuke image for 1 second
-         image('nuke', pos=(0,0), size=40).destruct(1)
+         image('explosion', pos=(5,0), size=20).destruct(1)
 
          # kill only red forces
          for r in get('red'):

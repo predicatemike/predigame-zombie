@@ -1,5 +1,7 @@
 # A Customizable Maze Game
-# Don't Edit This File
+# Editing this file is for 'expert' coders
+from types import MethodType
+
 WIDTH = 31
 HEIGHT = 19
 TITLE = 'Zombie Madness'
@@ -13,7 +15,6 @@ BLUE_SAFE = 'Blue Safe'
 
 current_level = None
 stats = None
-from types import MethodType
 
 def invoke(plugins, function, default, **kwargs):
    if function in plugins.__dict__:
@@ -181,7 +182,6 @@ class ZombieLevel(Level):
          save_state(self.player, 'player.pg')
          stats.add(LEVEL_COMPLETE, 1)
          save_state(stats, 'stats.pg')
-         print(str(stats))
          return True
       else:
          return False
