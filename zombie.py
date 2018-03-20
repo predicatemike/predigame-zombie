@@ -2,10 +2,12 @@
 # Editing this file is for 'expert' coders
 from types import MethodType
 
+# Window Constants
 WIDTH = 31
 HEIGHT = 19
 TITLE = 'Zombie Madness'
 
+# Statistics Constants
 LEVEL_COMPLETE = 'Levels Completed'
 PLAYER_KILLS = 'Player Kills'
 RED_LAUNCH = 'Red Launched'
@@ -13,22 +15,26 @@ RED_KILLS = 'Red Kills'
 BLUE_LAUNCH = 'Blue Launched'
 BLUE_SAFE = 'Blue Safe'
 
+# State Variables
 current_level = None
 stats = None
 
 def invoke(plugins, function, default, **kwargs):
+   """ call a plugin function or default to something else (if plugin doesn't have one we can call) """
    if function in plugins.__dict__:
       return plugins.__dict__[function](**kwargs)
    else:
       return globals()[default](**kwargs)
 
 def monitor(a, cb):
+   """ used by computer player (red and blue) to track progress and potentially replay movement """
    if a.action.startswith(IDLE):
       cb()
    if not a.action.startswith(DIE):
       callback(partial(monitor, a, cb), 0.75)
 
 def arrive_destination(dest_sprite, target):
+   """ when a blue actor arrives at their location (bottom right) """
    if target.tag == 'blue':
       target.destroy()
       current_level.blue_safe += 1
@@ -36,9 +42,11 @@ def arrive_destination(dest_sprite, target):
       stats.add(BLUE_SAFE, 1)
 
 def default_blue_destination():
+   """ the blue actor's destination image (bottom right) """
    return 'pigpen'
 
 def red_attack(red, target):
+   """ when red attacks """
    if target.tag == 'red':
       return
    if (target.tag == 'blue' or target.tag == 'player') and target.health > 0:
@@ -51,6 +59,7 @@ def red_attack(red, target):
       stats.add(RED_KILLS, 1)
 
 def red_murder(self):
+    """ Override for Actor.kill. Called when player kills a red. Reward the player and tally the kill """
     if self.health > 0:
        current_level.red_killed += 1
        current_level.player.wealth = 100
@@ -58,18 +67,19 @@ def red_murder(self):
     Actor.kill(self)
 
 def blue_murder(self):
+    """ Override for Actor.kill. Calleed when a blue is killed (by either red or player). Punish player and tally the kill """
     if self.health > 0:
        callback(partial(current_level.create_red, self.pos), 0.5)
        current_level.blue_killed += 1
        current_level.player.wealth = -250
-
     Actor.kill(self)
 
-def update_status(player):
-    score("{:3d} | {:3d}".format(int(player.energy), int(player.wealth)), color=WHITE, pos=LOWER_LEFT, method=VALUE)
 
 class ZombieLevel(Level):
+   """ Define a zombie level. """
+   # read in the plugins file
    plugins = import_plugin('zombie_plugins.py')
+
    def __init__(self, targets=1, level=1, duration=0, time_remaining=30):
       self.targets = targets
       self.level = level
@@ -98,7 +108,7 @@ class ZombieLevel(Level):
       blue.old_kill = MethodType(blue.kill, blue)
       blue.kill = MethodType(blue_murder, blue)
 
-      # callbacks
+      # callbacks - let reds know about this new blue actor
       for o in get('red'):
          o.collides(blue, red_attack)
 
@@ -116,13 +126,13 @@ class ZombieLevel(Level):
       red.old_kill = MethodType(red.kill, red)
       red.kill = MethodType(red_murder, red)
 
-      # callbacks
+      # callbacks - reds attack blue and player
       for o in get('blue'):
          red.collides(o, red_attack)
       for o in get('player'):
          red.collides(o, red_attack)
 
-      # movements
+      # movements - use astar algorithm to find and blue or player
       cb = partial(track_astar, red, ['blue', 'player'], pabort=0.1)
       callback(cb, 0.1)
       callback(partial(monitor, red, cb), 0.75)
@@ -131,20 +141,23 @@ class ZombieLevel(Level):
    def setup(self):
       """ setup the level """
 
-      # LOAD IN stats
+      # PLAYER
+      self.player = actor(self.plugins.get_player(), (1, HEIGHT-2), tag='player', abortable=True)
+      self.player.speed(5).keys(precondition=player_physics)
+
+      # PLAYER Inventory (activated by F1 key)
+      display('f1', 'inventory', self.player._inventory)
+
+      # PLAYER Statistics (activated by F2 key)
       global stats
       stats = Statistics()
       load_state(stats, 'stats.pg')
       display('f2', 'stats', stats)
 
-      # PLAYER
-      self.player = actor(self.plugins.get_player(), (1, HEIGHT-2), tag='player', abortable=True)
-      self.player.speed(5).keys(precondition=player_physics)
-
-      # DESTINATION
+      # BLUE SAFETY DESTINATION
       self.destination = image(invoke(self.plugins, "blue_destination", "default_blue_destination"), pos=(WIDTH-2, HEIGHT-2), size=1, tag='destination')
 
-      # KEYBOARD EVENTS
+      # KEYBOARD EVENTS - 'r' to restart
       keydown('r', reset)
 
       # USER DEFINED STUFF
@@ -153,30 +166,37 @@ class ZombieLevel(Level):
       # LOAD IN SAVED STATE
       load_state(self.player, 'player.pg')
 
-      # FRIENDLIES
+      # CREATE FRIENDLIES - 1 per level
       for i in range(self.targets):
          self.create_blue()
 
-      # HOSTILES
+      # CREATE HOSTILES - 1 per level
       for i in range(self.targets):
          self.create_red()
 
-      # SCORE BOARD
+      # SCORE BOARD - Level Counter
       score(self.level, pos=UPPER_RIGHT, color=WHITE, method=VALUE, prefix='Level: ')
 
-      callback(partial(update_status, self.player), wait=1, repeat=FOREVER)
+      # SCORE BOARD - ENERGY and WEALTH Counter
+      def __update_status__(player):
+        score("{:3d} | {:3d}".format(int(player.energy), int(player.wealth)), color=WHITE, pos=LOWER_LEFT, method=VALUE)
+      callback(partial(__update_status__, self.player), wait=1, repeat=FOREVER)
 
    def completed(self):
-      #print("RS:{},RK:{},BS:{},BK:{},BF:{}".format(self.red_spawned, self.red_killed, self.blue_spawned, self.blue_killed, self.blue_safe))
+      """ defines when a level is complete """
+
       if len(get('destination')) == 0:
+         # blue destination destroyed
          text("DESTINATION DESTROYED! GAME OVER")
          gameover()
          save_state(stats, 'stats.pg')
       elif len(get('player')) == 0:
+         # player dies
          text('GAME OVER')
          gameover()
          save_state(stats, 'stats.pg')
       elif len(get('blue')) == 0 and len(get('red')) == 0:
+         # blues arrive safely and all zombies dead - next level
          self.player.energy = 50
          self.player.wealth = 250
          save_state(self.player, 'player.pg')
@@ -184,6 +204,7 @@ class ZombieLevel(Level):
          save_state(stats, 'stats.pg')
          return True
       else:
+         # keep on playing
          return False
 
    def next(self):
@@ -196,6 +217,9 @@ class ZombieLevel(Level):
                              duration=score(pos=LOWER_RIGHT))
 
 class WalkAcrossLevel(Level):
+   """ a randomly loaded surprise level """
+
+   # read in the plugins file
    plugins = import_plugin('zombie_plugins.py')
 
    def __init__(self, targets=1, level=1, duration=0, time_remaining=30):
@@ -234,11 +258,13 @@ class WalkAcrossLevel(Level):
       keydown('r', reset)
 
    def completed(self):
-
+      """ defines when a level is complete """
       if len(get('player')) == 0:
+         # player dies
          text('GAME OVER')
          gameover()
       elif len(get('red')) == 0:
+         # red walks completes walk across without kill player - player wins!
          self.player.wealth = 250
          stats.add(LEVEL_COMPLETE, 1)
          save_state(stats, 'stats.pg')
@@ -249,4 +275,5 @@ class WalkAcrossLevel(Level):
        return ZombieLevel(targets=self.targets+1, level=self.level+1,
                           duration=score(pos=LOWER_RIGHT))
 
+# game entry point. start at level 1.
 level(ZombieLevel(1))

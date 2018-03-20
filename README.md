@@ -3,6 +3,8 @@ Zombie Madness
 ---------
 It's possible to take this game in a number of different directions. This README walks through some common **use cases** and the underlying code that would be required for implementation. Each example includes a **LOCATION GUIDE** that will detail where in the `zombie_plugins.py` file to insert and modify the code.
 
+[![IMAGE ALT TEXT](http://img.youtube.com/vi/ysMEknhl8Us/0.jpg)](https://youtu.be/ysMEknhl8Us "Zombie Madness")
+
 # Background Images
 
 ## Static backgrounds
