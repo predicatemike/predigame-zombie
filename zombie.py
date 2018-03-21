@@ -19,6 +19,9 @@ BLUE_SAFE = 'Blue Safe'
 current_level = None
 stats = None
 
+#
+# Support functions
+#
 def invoke(plugins, function, default, **kwargs):
    """ call a plugin function or default to something else (if plugin doesn't have one we can call) """
    if function in plugins.__dict__:
@@ -52,8 +55,10 @@ def red_attack(red, target):
    if (target.tag == 'blue' or target.tag == 'player') and target.health > 0:
       if target.tag == 'blue':
          current_level.blue_killed += 1
+
       red.stop()
       red.act(ATTACK, 1)
+      # This callback will cause the red to re-run another astar search
       callback(partial(red.act, IDLE_FRONT, FOREVER), 1)
       target.kill()
       stats.add(RED_KILLS, 1)
@@ -112,7 +117,7 @@ class ZombieLevel(Level):
       for o in get('red'):
          o.collides(blue, red_attack)
 
-      # movements
+      # movements - blues find a path to their destination
       cb = partial(track_astar, blue, ['destination'], pabort=0.1)
       callback(cb, 0.1)
       callback(partial(monitor, blue, cb), 0.75)
