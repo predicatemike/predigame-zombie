@@ -45,6 +45,7 @@ def setup(player, level):
       coin.destroy()
       player.wealth = 5
    fill(partial(image,'money', size=1.0), 0.25, player, claim)
+#end of setup()
 
 def get_blue():
    """ create a blue (friendly) actor """

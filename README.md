@@ -1,23 +1,24 @@
 
 Zombie Madness
 ---------
-An instructional implementation based on the [Predigame Platform](http://predigame.com). Many of the features have been curated by ~75 aspiring innovators (ages 10+) who love to flex some STEM prowess by putting ideas to code!
+A coding instructional implementation based on the [Predigame Platform](http://predigame.com). Many of the features have been curated by ~75 aspiring innovators (ages 10+) who love to flex their STEM prowess by putting ideas to code!
 
 ## Asset Licenses
-All static artwork has been obtained from [OpenGameArt](https://opengameart.org/) or from Google with the "Labeled for reuse" filtered defined. All animated sprites are licensed to Predicate Academy (Predigame's developer) for use limited to non-commercial Predigame development.
+All static artwork has been obtained from [OpenGameArt](https://opengameart.org/) or from Google with the "Labeled for reuse" filtered defined. Animated sprites are licensed to Predicate Academy (Predigame's developer) for use limited to non-commercial Predigame development.
 
 ## The (DEFAULT) Game Story
 - This game consists of three "actors" - the player (you, depicted as a soldier), red forces (depicted as a zombie), and blue forces (depicted as a wild boar).
-- Red forces launch in the top-right corner and will randomly find and seek the player and blues. Reds will attack upon collision. Death will be imminent. Blue deaths immediately turn into a new red.
+- Red forces launch in the top-right corner and will randomly find and seek the player and blues. Reds will attack upon collision. Death will be imminent. Blue deaths immediately turn into a new red. Player death ends game.
 - Blue forces launch in the top-left corner and try to navigate to their "home" destination (bottom-right corner). They don't know anything about the player and zombie, though it is possible to hack the blue forces and add "self defense".
-- Reds and blues  periodically "replan" their route to a given destination cell.
+- Reds and blues  periodically "replan" their routes.
 - Players try to ensure as many blues can return home safely while destroying all reds. They have weapons and should not be afraid to use them.
+- There is a 10% chance of a special level that will require a different strategy.
 
 [![IMAGE ALT TEXT](http://img.youtube.com/vi/ysMEknhl8Us/0.jpg)](https://youtu.be/ysMEknhl8Us "Zombie Madness")
 
 
 ## Instructional Coverage
-We're working on some videos to describe Predigame concepts in more detail, but this game illustrates some pretty cool features of the platform.
+We're working on some videos to describe Predigame concepts in more detail, but this game illustrates quite a few pretty cool features of the platform.
 
 **Predigame Concepts Covered:**
 - Callbacks (timing and keyboard)
@@ -34,10 +35,11 @@ We're working on some videos to describe Predigame concepts in more detail, but 
 - Loops
 - Classes
 
-The code consists of three files:
+The game consists of three files:
 - `zombie.py` - [ADVANCED] contains the bulk of the implementation. Can be modified as desired, but some of the concepts would require prior programming experience.
 - `weapons.py` - [INTERMEDIATE] all game weapons are defined as python classes. We recommend coders with prior experience experiment with the weapons and see the corresponding impacts in the game.
 - `zombie_plugins.py` - [BEGINNER] the game has a bunch of user defined features that can be easily tweaked to change the style and function of the game. The majority of our coders spend their time working in this file. This README walks through some common **use cases** and the underlying code that would be required for implementation. Each example includes a **LOCATION GUIDE** that will detail where in the `zombie_plugins.py` file to insert and modify the code.
+	- For those looking to start fresh, we've included a file `zombie_plugins_start.py` that has the bare minimum for a functioning game. You'll want save this file as `zombie_plugins.py` and start coding! Keep in mind that bare minimum means *NO WEAPONS* so you'll need to be extra careful and avoid those red forces.
 
 
 ## Installation (TODO)
@@ -54,7 +56,7 @@ my_machine$ pigm zombie.py
 ```
 
 ## State Management
-Upon completion of a level, the game will write two state files. These files can be deleted to reset state:
+Upon completion of a level, the game will write two state files. These files can be deleted to reset state.
 - `player.pg` - consists of player energy, wealth, and inventory.
 - `stats.pg` - consists of key game metrics:
 	- Number of levels completed
@@ -323,7 +325,7 @@ def blue_destination():
 It's possible to have your blue forces automate a self defense. This code is a bit weird and it still may allow hostiles to kill blue forces.
 
 **Step 1:** Define a self-defense function
-This code checks all directions to see if any red forces are within `5` blocks. If your blue force is not a Piggy, you'll want to change `HAPPY` to `ATTACK`.  When a red force is nearby, Piggy performs an air shot -- instantly killing the enemy.
+This code checks all directions to see if any red forces are within `5` blocks. When a red force is nearby, the blue throws some self defense flares -- instantly killing the enemy.
 ```python
 def blue_defend(actor):
    """ activate self defense """
@@ -332,9 +334,10 @@ def blue_defend(actor):
       if things and has_tag(things, 'red'):
             actor.direction = direction
             actor.stop = True
-            actor.act(HAPPY, 5)
             target = actor.next_object()
             if target and isinstance(target, Actor):
+               turd = image('turd', pos=actor.pos).speed(15)
+               turd.move_to(target.pos).destruct(2)
                target.kill()
             callback(partial(actor.act, IDLE, FOREVER), 5)
 ```
